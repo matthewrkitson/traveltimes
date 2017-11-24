@@ -6,20 +6,51 @@
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   <script>
   $( function() {
-    $( "#startdatepicker" ).datepicker();
+    var startdatepicker = $( "#startdatepicker" ).datepicker();
+    startdatepicker.datepicker("setDate", "+1d");
   } );
   </script>  
 
   <script>
+function isInvalidHour(hour)
+{
+    return typeof hour == "undefined" || isNaN(hour) || hour < 0 || hour > 23;
+}
+
+function isInvalidInterval(interval)
+{
+    return typeof interval == "undefined" || isNaN(interval) || interval < 1 || interval > 59;
+}
+
 function calculateDurations() 
 { 
-    var origin = document.getElementById("origin").value
-    var destination = document.getElementById("destination").value
-    var startDate = $("#startdatepicker").datepicker("getDate")
-    var startMoment = $("#starttimepicker").timepicker("getTime")
-	
-	alert(startDate)
-	alert(startMoment)
+  try
+  {
+    var origin = document.getElementById("origin").value;
+    var destination = document.getElementById("destination").value;
+    var startDate = $("#startdatepicker").datepicker("getDate");
+
+    var startHourText = $("#starttimehours").val();
+    var startHour = parseInt(startHourText);
+    if (isInvalidHour(startHour)) { throw "'" + startHourText + "' is not a valid start hour." }
+   
+    var endHourText = $("#endtimehours").val();
+    var endHour = parseInt(endHourText);
+    if (isInvalidHour(endHour)) { throw "'" + endHourText + "' is not a valid end hour." }
+    
+    var intervalText = $("#interval").val();
+    var interval = parseInt(intervalText);
+    if (isInvalidInterval(interval)) { throw "'" + intervalText + "' is not a valid interval." }
+
+    // startMoment = new Date(startDate.getYear(), 
+
+    alert(startDate.getDay());
+    alert(startMoment);
+  }
+  catch (e)
+  {
+    alert(e)
+  }
 }
   </script>
 </head>
@@ -30,9 +61,9 @@ function calculateDurations()
 <tr><td>Starting point:</td><td><input type="text" value="Origin" id="origin" style="width:100%"/></td></tr>
 <tr><td>Destination: </td><td><input type="text" value="Destination" id="destination" style="width:100%"/></td></tr>
 <tr><td>Start date: </td><td><input type="text" id="startdatepicker" style="width:100%"/></td></tr>
-<tr><td>Start time: </td><td><input type="text" id="starttimehours" size="2"/>:00 (24 hour format)</td></tr>
-<tr><td>End time: </td><td><input type="text" id="endtimehours" size="2"%/>:00 (24 hour format)</td></tr>
-<tr><td>Interval:</td><td><input type="text" id="interval" size="2"/> minutes</td></tr>
+<tr><td>Start time: </td><td><input type="text" id="starttimehours" size="2" value="7"/>:00 (24 hour format)</td></tr>
+<tr><td>End time: </td><td><input type="text" id="endtimehours" size="2" value="10"/>:00 (24 hour format)</td></tr>
+<tr><td>Interval:</td><td><input type="text" id="interval" size="2" value="5"/> minutes</td></tr>
 <tr><td colspan="2"><input type="button" value="Go" onclick="calculateDurations()" style="width: 100%"/></td></tr>
 </table>
 </body>
