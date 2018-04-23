@@ -9,7 +9,17 @@
     var startdatepicker = $( "#startdatepicker" ).datepicker();
     startdatepicker.datepicker("setDate", "+1d");
   } );
-  </script>  
+  </script>
+
+  <script src="apikey.js"></script>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAHS48QyxZtD93eRm5XsGtQXebm3Z_9iOM&v=3.exp"></script>
+
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript">
+     // Load the Visualization API and the corechart package.
+      google.charts.load('current', {'packages':['corechart']});
+  </script>
 
   <script>
 function isInvalidHour(hour)
@@ -37,20 +47,69 @@ function calculateDurations()
     var endHourText = $("#endtimehours").val();
     var endHour = parseInt(endHourText);
     if (isInvalidHour(endHour)) { throw "'" + endHourText + "' is not a valid end hour." }
-    
+
+    if(endHour < startHour) { throw "End time must be later than start time." }   
+ 
     var intervalText = $("#interval").val();
     var interval = parseInt(intervalText);
     if (isInvalidInterval(interval)) { throw "'" + intervalText + "' is not a valid interval." }
 
-    // startMoment = new Date(startDate.getYear(), 
+    var startMoment = new Date(startDate.getTime() + startHour * 60 * 60 * 1000);
+    var endMoment = new Date(startDate.getTime() + endHour * 60 * 60 * 1000);
 
-    alert(startDate.getDay());
-    alert(startMoment);
+    var trafficModels = [ "optimistic", "bestguess", "pessimistic"];
+
+    for (var time = startMoment; time < endMoment; time = new Date(time.getTime() + interval * 60 * 1000))
+    {
+        for (var i =0; i < trafficModels.length; i++)
+        {
+            trafficModel = trafficModels[i];
+            (function(time, trafficModel)
+            {
+                var service = new google.maps.DistanceMatrixService();
+                service.getDistanceMatrix(
+                  {
+                    origins: [origin],
+                    destinations: [destination],
+                    travelMode: "DRIVING",
+                    drivingOptions: { departureTime: time, trafficModel: trafficModel },
+                    unitSystem: google.maps.UnitSystem.IMPERIAL,
+                    avoidHighways: false,
+                    avoidTolls: true,
+                  }, function(r, s) { handleResponse(r, s, time, trafficModel); } );
+            })(time, trafficModel)
+        }
+    }
   }
   catch (e)
   {
     alert(e)
   }
+}
+
+function handleResponse(response, status, time, trafficModel)
+{
+    if (status != "OK") { alert(status) }
+    
+    var origins = response.originAddresses;
+    var destinations = response.destinationAddresses;
+
+    var text = "";
+    for (var i = 0; i < origins.length; i++) {
+      var results = response.rows[i].elements;
+      for (var j = 0; j < results.length; j++) {
+        var element = results[j];
+        var distance = element.distance.text;
+        var duration = element.duration.value;
+        var duration_in_traffic = element.duration_in_traffic.value;
+        var from = origins[i];
+        var to = destinations[j];
+        text = text + time.toLocaleTimeString() + "(" + trafficModel + ": " + distance + ", " + duration + ", " + duration_in_traffic + ", " + from + ", " + to + "\n";
+      }
+    }
+
+    var textElement =  $('#text');
+    textElement.html(textElement.html() + text);
 }
   </script>
 </head>
@@ -58,13 +117,15 @@ function calculateDurations()
 <body>
 <h1>Travel times 2</h1>
 <table>
-<tr><td>Starting point:</td><td><input type="text" value="Origin" id="origin" style="width:100%"/></td></tr>
-<tr><td>Destination: </td><td><input type="text" value="Destination" id="destination" style="width:100%"/></td></tr>
+<tr><td>Starting point:</td><td><input type="text" value="CB4 3ES" id="origin" style="width:100%"/></td></tr>
+<tr><td>Destination: </td><td><input type="text" value="PE28 4NE" id="destination" style="width:100%"/></td></tr>
 <tr><td>Start date: </td><td><input type="text" id="startdatepicker" style="width:100%"/></td></tr>
 <tr><td>Start time: </td><td><input type="text" id="starttimehours" size="2" value="7"/>:00 (24 hour format)</td></tr>
-<tr><td>End time: </td><td><input type="text" id="endtimehours" size="2" value="10"/>:00 (24 hour format)</td></tr>
+<tr><td>End time: </td><td><input type="text" id="endtimehours" size="2" value="8"/>:00 (24 hour format)</td></tr>
 <tr><td>Interval:</td><td><input type="text" id="interval" size="2" value="5"/> minutes</td></tr>
 <tr><td colspan="2"><input type="button" value="Go" onclick="calculateDurations()" style="width: 100%"/></td></tr>
 </table>
+<div id="chart"></div>
+<pre id="text"></pre>
 </body>
 </html>
